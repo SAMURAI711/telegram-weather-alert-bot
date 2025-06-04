@@ -83,7 +83,7 @@
             },
             {
               "name": "appid",
-              "value": ""
+              "value": "[your weather API]"
             },
             {
               "name": "units",
