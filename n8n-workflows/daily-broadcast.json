@@ -1,1 +1,287 @@
 
+{
+  "name": "Weather Bot - Daily Broadcast",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -860,
+        -20
+      ],
+      "id": "f3a73a7f-c3ce-40e3-a965-42e49efde20e",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -640,
+        -20
+      ],
+      "id": "e9de5b30-4124-40dd-80f7-0636c5b76a8a",
+      "name": "Get Users List",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get ALL input data from the previous node.\n// This will be an array where each element is an n8n item object { json: {...} }\nconst allInputItems = $input.all();\n\n// Now, transform these n8n item objects into just their 'json' payload\n// This results in an array of your raw user objects: [ {user1}, {user2}, ... ]\nconst users = allInputItems.map(item => item.json);\n\n// The rest of your filtering and mapping logic remains largely the same\n// It will now operate on the complete 'users' array\n\nconst subscribers = users.filter(user =>\n  user.subscribed === true &&\n  user.location &&\n  user.lat &&\n  user.lon\n);\n\n// Map the filtered subscribers to the desired output format\n// The .map function for 'subscribers' will produce an array of new JSON objects\nreturn subscribers.map(user => ({\n  json: {\n    userId: user.user_id,\n    location: user.location,\n    lat: user.lat,\n    lon: user.lon,\n    chatId: user.user_id // Assuming userId is also used as chatId for private chats\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        -20
+      ],
+      "id": "e6648b27-c2ca-41f7-9565-09f64dd30cab",
+      "name": "Filter Subscribers",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "lat",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "appid",
+              "value": ""
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        60
+      ],
+      "id": "1c70335a-4063-4064-8a75-7996d0a59d0a",
+      "name": "Weather for Each User"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get ALL input items from the previous node.\nconst inputItems = $input.all();\n\n// You need to map each input item to an output item.\nreturn inputItems.map(item => {\n  const weather = item.json; // Extract the actual weather data object from the current item\n\n  // Location Name: If weather.name exists (like in OpenWeatherMap), use it.\n  // Otherwise, if it was passed through from the subscriber list, it would be in item.json.location.\n  // Let's assume it's passed through for consistency with earlier parts of the workflow.\n  const locationName = item.json.location || weather.name || 'Your Location';\n\n\n  const iconMap = {\n    '01d': '☀️', '02d': '⛅', '03d': '☁️', '04d': '☁️',\n    '09d': '🌧️', '10d': '🌦️', '11d': '⛈️', '13d': '❄️', '50d': '🌫️',\n    '01n': '🌙', '02n': '☁️', '03n': '☁️', '04n': '☁️',\n    '09n': '🌧️', '10n': '🌧️', '11n': '⛈️', '13n': '❄️', '50n': '🌫️'\n  };\n\n  const icon = iconMap[weather.weather[0]?.icon] || '🌤️';\n  const temp = Math.round(weather.main?.temp || 0);\n  const description = weather.weather[0]?.description || 'N/A';\n\n  // Get user details for chatId, which should have been passed through each item\n  // This variable correctly holds the userId (which you're using as chatId) for the CURRENT item\n  const userIdForChat = item.json.userId || '';\n\n  const message = `🌅 Good Morning! Today's Weather in ${locationName}\n\n${icon} ${temp}°C - ${description}\n\nHave a great day! 🌈\n\nUse /weather for detailed info or /unsubscribe to stop daily updates.`;\n\n  // Return a new n8n item for each processed weather data\n  return {\n    json: {\n      // CORRECTED: Use the userIdForChat variable which is specific to the current item\n      chatId: userIdForChat,\n      message: message\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        -20
+      ],
+      "id": "ade80370-1adb-4dc9-9826-9aa71325fe2b",
+      "name": "Format Daily Weather"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        420,
+        -160
+      ],
+      "id": "e15964e5-53ee-4a15-a63d-bee11729e031",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        -20
+      ],
+      "id": "841d32dd-f7ae-42c5-9f82-5090c0020cfa",
+      "name": "Send Daily Weather",
+      "webhookId": "ab4f68d4-4154-4eac-a55f-bdf8192457da",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "66b0c961-8f17-40b8-bfc5-a34f285d5aca",
+              "leftValue": "={{ $json.userId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -120,
+        60
+      ],
+      "id": "82e7e571-bbaf-42f8-afa6-7cde71d77ada",
+      "name": "Is There Any Subscribers ?",
+      "alwaysOutputData": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Users List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Users List": {
+      "main": [
+        [
+          {
+            "node": "Filter Subscribers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Subscribers": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is There Any Subscribers ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather for Each User": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Format Daily Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Daily Weather": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is There Any Subscribers ?": {
+      "main": [
+        [
+          {
+            "node": "Weather for Each User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "30addd63-088a-49aa-9042-efbec6f22a91",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ff50a2bb8e05b64a5f5c79a3c4563fcf8f36ac2d8e7c05167cadd6a06e32a3a0"
+  },
+  "id": "gMDjkcWG9I5oWivJ",
+  "tags": []
+}
