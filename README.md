@@ -46,3 +46,5 @@ A comprehensive weather bot for Telegram built with n8n that provides real-time 
    ```bash
    git clone https://github.com/yourusername/telegram-weather-alert-bot.git
    cd telegram-weather-alert-bot
+
+3. **Follow the detailed setup guide:** docs/setup-guide.md
