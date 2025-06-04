@@ -1,1 +1,286 @@
-
+{
+  "name": "Weather Bot - Alert Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -500,
+        -20
+      ],
+      "id": "0480dcfd-592d-41a2-8105-0efdaa8cafe9",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -280,
+        -20
+      ],
+      "id": "23c90828-e3dc-4035-af62-1db277522686",
+      "name": "Get All Users",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get ALL input items from the previous node.\n// This gives you an array of n8n item objects (e.g., [{ json: {...} }, { json: {...} }])\nconst allInputItems = $input.all();\n\n// Map these n8n item objects to extract their 'json' payload,\n// resulting in a clean array of your user data objects.\n// This ensures 'users' is always an array, whether there's 1, 3, or 0 input items.\nconst users = allInputItems.map(item => item.json);\n\n// Filter the users based on the conditions\nconst activeUsers = users.filter(user =>\n  user.location && user.lat && user.lon\n);\n\n// Map the filtered activeUsers to the desired output format\nreturn activeUsers.map(user => ({\n  json: {\n    userId: user.user_id,\n    location: user.location,\n    lat: user.lat,\n    lon: user.lon,\n    chatId: user.user_id // Assuming user_id is the correct chatId\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        -20
+      ],
+      "id": "55edc8b3-546f-448f-97bf-577a5d9e4925",
+      "name": "Filter Active Users"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "lat",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "appid",
+              "value": ""
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        20
+      ],
+      "id": "f3668a07-9d2b-4b40-b232-dde7eee9170f",
+      "name": "Weather Alerts API"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        720,
+        -160
+      ],
+      "id": "af6e8102-65d0-48c0-a17b-b795847ba93d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get ALL input items from the previous node.\n// Each item will be an n8n item object, containing the weather data and user details\nconst inputItems = $input.all();\n\n// You need to map each input item to an output item.\n// This ensures each weather data block is processed independently.\nreturn inputItems.map(item => {\n  // Extract the actual weather data object and user details for the current item\n  const weather = item.json;\n  const locationName = item.json.location || weather.name || 'Your Location'; // Prioritize passed-through location, fallback to weather.name\n\n  // This variable correctly holds the userId (which you're using as chatId) for the CURRENT item\n  const userIdForChat = item.json.userId || ''; // Or item.json.chatId if that's the field name\n\n\n  // Safely access weather properties\n  const temp = weather.main?.temp;\n  const windSpeed = (weather.wind?.speed || 0) * 3.6; // m/s to km/h, default 0\n  const condition = weather.weather[0]?.main;\n  const description = weather.weather[0]?.description;\n\n  let alerts = [];\n\n  // Temperature alerts\n  if (temp !== undefined) {\n    if (temp < -5) {\n      alerts.push('🥶 Extreme Cold Warning: Temperature below -5°C');\n    }\n    if (temp > 35) {\n      alerts.push('🔥 Heat Warning: Temperature above 35°C');\n    }\n  }\n\n  // Wind alerts\n  if (windSpeed > 50) {\n    alerts.push('💨 High Wind Warning: Wind speed above 50 km/h');\n  }\n\n  // Weather condition alerts\n  if (condition === 'Thunderstorm') {\n    alerts.push('⛈️ Thunderstorm Alert: Take shelter indoors');\n  }\n  if (condition === 'Snow') {\n    alerts.push('❄️ Snow Alert: Drive carefully and dress warmly');\n  }\n\n  // If no alerts, return null for this item\n  if (alerts.length === 0) {\n    return null;\n  }\n\n  const message = `⚠️ WEATHER ALERT for ${locationName}\n\n${alerts.join('\\n')}\n\nCurrent conditions: ${Math.round(temp || 0)}°C, ${description || 'N/A'}\n\nStay safe! 🙏`;\n\n  // Return a new n8n item for each processed weather data that generated an alert\n  return {\n    json: {\n      // FIX: Use the userIdForChat variable which is specific to the current item\n      chatId: userIdForChat,\n      message: message\n    }\n  };\n}).filter(Boolean); // .filter(Boolean) will remove any null items from the array"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -20
+      ],
+      "id": "bf0887c0-efbf-4deb-b4b6-65b187894d6d",
+      "name": "Check Alert Conditions",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -20
+      ],
+      "id": "be38674c-aa8f-4a6f-ad24-39c48d92e84e",
+      "name": "Send Alert",
+      "webhookId": "d7b32d18-3b3b-4151-aae4-aba6a1139f30",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "610674d7-abdc-420c-b17c-a28e99ef9b09",
+              "leftValue": "={{ $json.userId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        60
+      ],
+      "id": "1bccd19f-ff14-45ec-bbab-4dfa2688e4c2",
+      "name": "Is There Active Users"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get All Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Users": {
+      "main": [
+        [
+          {
+            "node": "Filter Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Active Users": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is There Active Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather Alerts API": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Check Alert Conditions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Alert Conditions": {
+      "main": [
+        [
+          {
+            "node": "Send Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is There Active Users": {
+      "main": [
+        [
+          {
+            "node": "Weather Alerts API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "102d1fdf-8672-4b6d-8859-c8a8140d2b54",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ff50a2bb8e05b64a5f5c79a3c4563fcf8f36ac2d8e7c05167cadd6a06e32a3a0"
+  },
+  "id": "Q3XzfXtAjifX8MZ1",
+  "tags": []
+}
