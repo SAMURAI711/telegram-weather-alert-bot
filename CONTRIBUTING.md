@@ -1,5 +1,5 @@
 ### CONTRIBUTING.md
-```markdown
+
 # Contributing to Telegram Weather Alert Bot
 
 Thank you for your interest in contributing to our weather bot project! 🌤️
