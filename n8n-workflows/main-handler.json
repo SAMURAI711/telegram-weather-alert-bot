@@ -1,1 +1,2827 @@
-
+{
+  "name": "Weather Bot - Main Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -700,
+        40
+      ],
+      "id": "e2fe9952-878f-4184-a7ae-0d5fc493d4d8",
+      "name": "Telegram Trigger",
+      "webhookId": "91784f43-b3f6-4732-a865-b78523951f98",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract command and user info\nconst message = $input.first().json;\nconst userId = message.message.from.id;\nconst username = message.message.from.username || '';\nconst firstName = message.message.from.first_name || '';\nconst chatId = message.message.chat.id;\nconst text = message.message.text || '';\n\n// Parse command\nlet command = '';\nlet parameter = '';\n\nif (text.startsWith('/')) {\n  const parts = text.split(' ');\n  command = parts[0].toLowerCase();\n  parameter = parts.slice(1).join(' ');\n}\n\nreturn [{\n  json: {\n    userId,\n    username,\n    firstName,\n    chatId,\n    command,\n    parameter,\n    originalMessage: text\n  }\n}]; // <-- NO semicolon here"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        40
+      ],
+      "id": "ac0f02a4-d82c-4f83-8c52-d994554d06a1",
+      "name": "Parse Command"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "user_id",
+              "lookupValue": "={{$json.userId}}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        340,
+        -1260
+      ],
+      "id": "31a4eeca-5897-4a12-97ec-bdd457cb6b67",
+      "name": "Check User Exists",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "60b96854-4ad3-4d3f-a3a2-f2e25740af0e",
+              "leftValue": "={{$json.user_id}}",
+              "rightValue": "empty",
+              "operator": {
+                "type": "number",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        -1260
+      ],
+      "id": "ce21af28-ece9-45fd-bb99-6100c1351237",
+      "name": "New User Check"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('Parse Command').item.json.userId }}",
+            "username": "={{ $('Parse Command').item.json.username }}",
+            "first_name": "={{ $('Parse Command').item.json.firstName }}",
+            "lat": "\"\"",
+            "lon": "\"\"",
+            "subscribed": "false",
+            "last_active": "={{$now}}",
+            "timezone": "\"\"",
+            "location": "\"\""
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lat",
+              "displayName": "lat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lon",
+              "displayName": "lon",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subscribed",
+              "displayName": "subscribed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timezone",
+              "displayName": "timezone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_active",
+              "displayName": "last_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        800,
+        -1360
+      ],
+      "id": "f37d247a-2e9e-4ece-bacc-b664c90db808",
+      "name": "Add New User ",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const parameter = $json.parameter;\nconst userId = $json.userId;\nconst chatId = $json.chatId;\n\nif (!parameter || parameter.trim() === '') {\n  return [{\n    json: {\n      error: true,\n      chatId: chatId,\n      message: \"Please provide a location. Example: /location London\"\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    userId: userId,\n    chatId: chatId,\n    location: parameter.trim(),\n    error: false\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        20
+      ],
+      "id": "1371dae8-d92d-4278-891e-411af9610656",
+      "name": "Validate Location Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "const firstName = $json.first_name || 'there';\nconst message = `🌤️ Welcome to Weather Alert Bot, ${firstName}!\n\nTo get started, please set your location using:\n/location [Your City Name]\n\nExample: /location Errachidia\n\nAvailable commands:\n🌡️ /weather - Current weather\n📅 /forecast - 3-day forecast  \n📍 /location - Set location\n🔔 /subscribe - Daily updates\n🔕 /unsubscribe - Stop updates\n⚠️ /alerts - Weather warnings\n❓ /help - Show this help\n\nLet's get your weather updates started! 🌈`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        -1360
+      ],
+      "id": "897fbf49-1216-49d1-8366-35b37a7b3c54",
+      "name": "Prepare Welcome Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        -1360
+      ],
+      "id": "131bc079-833e-439d-8e7e-b48242ac1ced",
+      "name": "Send Welcome Message",
+      "webhookId": "75271181-5c77-4c28-a12b-8e1402d2ef11",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const firstName = $json.first_name || 'there';\nconst message = `🌤️ Welcome to Weather Alert Bot, ${firstName}!\n\nBot Is Already Strated\n\nAvailable commands:\n🌡️ /weather - Current weather\n📅 /forecast - 3-day forecast  \n📍 /location - Set location\n🔔 /subscribe - Daily updates\n🔕 /unsubscribe - Stop updates\n⚠️ /alerts - Weather warnings\n❓ /help - Show this help\n\nLet's get your weather updates started! 🌈`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        -1160
+      ],
+      "id": "8d134b96-271a-4e2c-a45d-f2c2118ad967",
+      "name": "Prepare Exist Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        980,
+        -1160
+      ],
+      "id": "03fb4395-6a94-431e-a060-a7057f3d5f7e",
+      "name": "Send Exist Message",
+      "webhookId": "75271181-5c77-4c28-a12b-8e1402d2ef11",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const location = $input.first().json;\n\nconst userId = $('Validate Location Input').first().json.userId;\nconst chatId = $('Validate Location Input').first().json.chatId;\nconst locationInput = $('Validate Location Input').first().json.location;\n\nif (!location || !location.name) {\n  return [{\n    json: {\n      error: true,\n      chatId: chatId,\n      message: `❌ Could not find location \"${locationInput}\". Please try again with a different city name.`\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    userId: userId,\n    chatId: chatId,\n    locationName: `${location.name}, ${location.country}`,\n    lat: location.lat,\n    lon: location.lon,\n    error: false\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        20
+      ],
+      "id": "c34daad6-fb38-4433-a671-0071fa750d8a",
+      "name": "Process Geocoding Response"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.userId }}",
+            "location": "={{ $json.locationName }}",
+            "lat": "={{ $json.lat }}",
+            "lon": "={{ $json.lon }}",
+            "last_active": "={{$now}}"
+          },
+          "matchingColumns": [
+            "user_id"
+          ],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lat",
+              "displayName": "lat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lon",
+              "displayName": "lon",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subscribed",
+              "displayName": "subscribed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timezone",
+              "displayName": "timezone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_active",
+              "displayName": "last_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1200,
+        20
+      ],
+      "id": "5bbaf477-f90e-4ba5-8d39-6f4ed2952931",
+      "name": "Update User Location",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const locationName = $input.first().json.location;\nconst message = `📍 Location set to: ${locationName}\n\nNow you can use:\n🌡️ /weather - Get current weather\n📅 /forecast - Get 3-day forecast\n🔔 /subscribe - Enable daily weather updates`;\n\nreturn [{\n  json: {\n    chatId: $('Process Geocoding Response').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        20
+      ],
+      "id": "3d8cd542-da91-4157-a0ba-3166f4c79562",
+      "name": "Prepare Confirm Location Set Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1640,
+        20
+      ],
+      "id": "b05adaa6-148d-4ccb-aa8d-df1cfcae6d68",
+      "name": "Send Confirm Location Set Message",
+      "webhookId": "20656eb6-135a-4781-85e3-f23cadb87b20",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "user_id",
+              "lookupValue": "={{$json.userId}}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        620,
+        -840
+      ],
+      "id": "fbe639ea-3b8d-4aba-8693-56e0965fd22d",
+      "name": "Get User Location",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const weather = $input.first().json;\nconst userLocation = $('Check Location (Weather)').first().json.location;\n\n// Weather icon mapping\nconst iconMap = {\n  '01d': '☀️', '01n': '🌙', '02d': '⛅', '02n': '☁️',\n  '03d': '☁️', '03n': '☁️', '04d': '☁️', '04n': '☁️',\n  '09d': '🌧️', '09n': '🌧️', '10d': '🌦️', '10n': '🌧️',\n  '11d': '⛈️', '11n': '⛈️', '13d': '❄️', '13n': '❄️',\n  '50d': '🌫️', '50n': '🌫️'\n};\n\nconst icon = iconMap[weather.weather[0].icon] || '🌤️';\nconst temp = Math.round(weather.main.temp);\nconst feelsLike = Math.round(weather.main.feels_like);\nconst description = weather.weather[0].description;\nconst humidity = weather.main.humidity;\nconst windSpeed = Math.round(weather.wind.speed * 3.6); // Convert m/s to km/h\nconst pressure = weather.main.pressure;\n\n// Generate recommendations\nlet recommendations = '\\n📋 Recommendations:\\n';\nif (temp < 5) recommendations += '🧥 Wear a warm coat\\n';\nif (temp > 25) recommendations += '👕 Light clothing recommended\\n';\nif (humidity > 80) recommendations += '💧 High humidity - stay hydrated\\n';\nif (windSpeed > 20) recommendations += '💨 Windy conditions - secure loose items\\n';\n\nconst message = `${icon} Current Weather in ${userLocation}\n\n🌡️ Temperature: ${temp}°C (feels like ${feelsLike}°C)\n📝 Condition: ${description}\n💧 Humidity: ${humidity}%\n💨 Wind Speed: ${windSpeed} km/h\n📊 Pressure: ${pressure} hPa${recommendations}\n\nUpdated: ${new Date().toLocaleString()}`;\n\nreturn [{\n  json: {\n    chatId: $('Route Commands').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        -940
+      ],
+      "id": "ed1d922b-6d6e-42cf-b587-389757f90155",
+      "name": "Format Weather Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1520,
+        -940
+      ],
+      "id": "81412cd9-57b7-4b15-9cf7-c5727e7b07aa",
+      "name": "Send Weather Message",
+      "webhookId": "bb8d8808-c497-4278-baef-eb32a54de654",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = `Please Provide a Valide Location Name.\nUse Command : /Location [city's name]\n\nUpdated: ${new Date().toLocaleString()}`;\n\nreturn [{\n  json: {\n    chatId: $('Route Commands').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -760
+      ],
+      "id": "eddd554d-f7cc-4a2d-bd8f-bced3d5d6546",
+      "name": "Format Reset Location Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1340,
+        -760
+      ],
+      "id": "39653fcc-3cdb-4c0a-a7c5-9bea08a530ed",
+      "name": "Send Reset Location Message",
+      "webhookId": "bb8d8808-c497-4278-baef-eb32a54de654",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ce3cfb40-6a71-4f1c-9b58-5d9b9ae9d8ed",
+              "leftValue": "={{ $json.location }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1060,
+        -440
+      ],
+      "id": "b7cae76e-2b84-4e2d-b21d-e1a2d0ea3d92",
+      "name": "Check Location Set",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const firstName = $json.first_name || 'there';\nconst message = `${firstName}, Please Choose a Location First!\n\nTo get started, please set your location using:\n/location [Your City Name]\n\nExample: /location Errachidia`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -280
+      ],
+      "id": "0c1ccd36-6f98-40e0-8f8a-ddb273a41655",
+      "name": "Prepare Location Reminder Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1640,
+        -280
+      ],
+      "id": "a92f843d-b3b5-47f7-b000-a983a79b799a",
+      "name": "Send Location Reminder Message",
+      "webhookId": "75271181-5c77-4c28-a12b-8e1402d2ef11",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "lat",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "appid",
+              "value": "[your weather API]"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1580,
+        -540
+      ],
+      "id": "119bd2bf-c3d3-4633-9c21-13e7453ec013",
+      "name": "5-Day Forecast"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "user_id",
+              "lookupValue": "={{$json.userId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        860,
+        300
+      ],
+      "id": "7011f4d9-ece4-459b-9dcc-381092f64ef8",
+      "name": "Get User Data (Subscribe)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const firstName = $json.first_name || 'there';\nconst message = `Hi ${firstName}, \nYou are Already Subscribed!`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        540
+      ],
+      "id": "a106bf51-fc04-4418-ac0b-09a77ebe6f98",
+      "name": "Prepare Subscribed Reminder Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2360,
+        540
+      ],
+      "id": "8dbf0289-c2cf-4122-8550-0789028afb68",
+      "name": "Send Subscribed Reminder Message",
+      "webhookId": "75271181-5c77-4c28-a12b-8e1402d2ef11",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = `📍 Please set your location first before subscribing:\n/location [Your City Name]\n\nExample: /location Paris\n\nOnce your location is set, use /subscribe again to enable daily updates.`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2360,
+        340
+      ],
+      "id": "48d6aac2-33dd-47e8-878a-57952a6c87a9",
+      "name": "Prepare Location Set Message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c9ce7826-b7e3-486d-9f68-232d0b3e245e",
+              "leftValue": "={{ $json.location }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2060,
+        200
+      ],
+      "id": "04884ff3-4195-4036-b198-478c8d0cedc1",
+      "name": "Check Location"
+    },
+    {
+      "parameters": {
+        "jsCode": "const location = $json.location || 'your location';\nconst message = `🔔 Daily weather updates enabled!\n\nYou'll receive weather updates for ${location} every morning at 7:00 AM.\n\nYou can:\n- Use /unsubscribe to stop daily updates\n- Use /location to change your location\n- Use /weather for current conditions\n\nStay informed! 🌤️`;\n\nreturn [{\n  json: {\n    chatId: $json.user_id,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        180
+      ],
+      "id": "e6d992bd-316d-4245-b923-ac53bd1e169c",
+      "name": "Prepare Subscribe Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2680,
+        180
+      ],
+      "id": "82383e6e-752c-489f-8a74-ff9190f78d75",
+      "name": "Send Subscribe Message",
+      "webhookId": "ae9f9d00-10ac-4d89-8345-ee3f446ec970",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const forecast = $input.first().json;\nconst userLocation = $('Check Location Set').first().json.location;\n\n// Weather icon mapping\nconst iconMap = {\n  '01d': '☀️', '01n': '🌙', '02d': '⛅', '02n': '☁️',\n  '03d': '☁️', '03n': '☁️', '04d': '☁️', '04n': '☁️',\n  '09d': '🌧️', '09n': '🌧️', '10d': '🌦️', '10n': '🌧️',\n  '11d': '⛈️', '11n': '⛈️', '13d': '❄️', '13n': '❄️',\n  '50d': '🌫️', '50n': '🌫️'\n};\n\n// Get 3-day forecast (next 3 days at noon)\nconst dailyForecasts = [];\nconst processedDates = new Set();\n\nfor (let item of forecast.list) {\n  const date = new Date(item.dt * 1000);\n  const dateStr = date.toDateString();\n  const hour = date.getHours();\n  \n  // Get forecast around noon (12 PM) for each day\n  if (hour >= 11 && hour <= 13 && !processedDates.has(dateStr) && dailyForecasts.length < 3) {\n    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });\n    const icon = iconMap[item.weather[0].icon] || '🌤️';\n    const temp = Math.round(item.main.temp);\n    const description = item.weather[0].description;\n    const rainProb = Math.round((item.pop || 0) * 100);\n    \n    dailyForecasts.push(`${dayName}: ${icon} ${temp}°C - ${description} (${rainProb}% rain)`);\n    processedDates.add(dateStr);\n  }\n}\n\nconst message = `📅 3-Day Forecast for ${userLocation}\n\n${dailyForecasts.join('\\n')}\n\n💡 Tip: Use /weather for current conditions or /subscribe for daily updates!`;\n\nreturn [{\n  json: {\n    chatId: $('Check Location Set').first().json.user_id,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        -540
+      ],
+      "id": "82395b72-8ac9-4b43-9384-386a7c65bc14",
+      "name": "Format Forecast Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2020,
+        -540
+      ],
+      "id": "1f652004-43d6-4c5c-88a8-8721ec55a8ac",
+      "name": "Send Forecast Message",
+      "webhookId": "ab2f5761-fb38-4450-9182-8ce3a270aa2b",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2e73647-332e-442d-a616-c41ad1568a8f",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1080,
+        300
+      ],
+      "id": "cf7284b2-86ed-4c64-b09d-04e3a34eb051",
+      "name": "Check User Existence"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "user_id",
+              "lookupValue": "={{$json.userId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1180,
+        880
+      ],
+      "id": "8d3e5f73-2312-4968-b9e2-598423aaf996",
+      "name": "Get User Data (Unsubscribe)",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c2e73647-332e-442d-a616-c41ad1568a8f",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1400,
+        880
+      ],
+      "id": "3c148468-57af-4ba5-9e11-5b5f0e7ae5d3",
+      "name": "Check User Existence (Unsubscribe)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = `🤖 You're not registered yet. Send /start to begin using the bot!`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.userId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        1060
+      ],
+      "id": "44f5c2d8-b73e-4011-8904-c3e18e2825db",
+      "name": "User Not Found (Unsubscribe)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1900,
+        1060
+      ],
+      "id": "4c67bb39-4dac-4f57-97c6-3b2fd6da660b",
+      "name": "Send Message : User Not Found (Unsubscribe)",
+      "webhookId": "55d20ae7-aa7c-4cb1-8a5f-9169ae029736",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = `🤖 Please start the bot first by sending /start\n\nThen set your location and subscribe to daily updates!`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.userId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        480
+      ],
+      "id": "890d8b80-5f94-4690-89a1-3b0d66830a23",
+      "name": "User Not Found (Subscribe)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1560,
+        480
+      ],
+      "id": "cd3edc6f-091b-4a2e-950b-36ec67e1c447",
+      "name": "Send Message : User Not Found (Subscribe)",
+      "webhookId": "55d20ae7-aa7c-4cb1-8a5f-9169ae029736",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "33770c28-7869-4404-9cf3-ddf4dd44cd3b",
+              "leftValue": "={{ $json.subscribed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2180,
+        880
+      ],
+      "id": "c83f1ddf-6c68-44c1-9dc5-838eb033fd54",
+      "name": "Check Unsubscribe Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "33770c28-7869-4404-9cf3-ddf4dd44cd3b",
+              "leftValue": "={{ $json.subscribed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        300
+      ],
+      "id": "2ede8149-941a-493b-b887-8bbb6e4e389c",
+      "name": "Check Subscribe Status"
+    },
+    {
+      "parameters": {
+        "jsCode": "const firstName = $json.first_name || 'there';\nconst message = `Hi ${firstName}, \nYou are Already Not Subscribed!`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2500,
+        1120
+      ],
+      "id": "fc05ce0f-7161-4dff-90a2-a92c10ca705d",
+      "name": "Prepare Unsubscribed Reminder Message"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.user_id }}",
+            "subscribed": "false",
+            "last_active": "={{$now}}"
+          },
+          "matchingColumns": [
+            "user_id"
+          ],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lat",
+              "displayName": "lat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lon",
+              "displayName": "lon",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subscribed",
+              "displayName": "subscribed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timezone",
+              "displayName": "timezone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_active",
+              "displayName": "last_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2720,
+        720
+      ],
+      "id": "9f97e62e-1c69-4a8c-9b82-cf73ede35906",
+      "name": "Change Unsubscribe Status",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.user_id }}",
+            "subscribed": "true",
+            "last_active": "={{$now}}"
+          },
+          "matchingColumns": [
+            "user_id"
+          ],
+          "schema": [
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lat",
+              "displayName": "lat",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lon",
+              "displayName": "lon",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subscribed",
+              "displayName": "subscribed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "timezone",
+              "displayName": "timezone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_active",
+              "displayName": "last_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2460,
+        0
+      ],
+      "id": "f6e8ed2f-5604-4780-936f-9e0f21c93244",
+      "name": "Change Subscribe Status",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2540,
+        340
+      ],
+      "id": "8af3898f-3d8f-47b6-9b99-bbb73df5fd10",
+      "name": "Send Location Set Message",
+      "webhookId": "75271181-5c77-4c28-a12b-8e1402d2ef11",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = `🔕 Daily weather updates disabled.\n\nYou won't receive automatic morning weather updates anymore.\n\nYou can still:\n- Use /weather for current conditions\n- Use /forecast for 3-day forecast\n- Use /subscribe to re-enable daily updates\n\nThank you for using Weather Alert Bot! 🌤️`;\n\nreturn [{\n  json: {\n    chatId: $json.user_id,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        940
+      ],
+      "id": "4991d81e-d8ae-4c75-b3e8-c0fa8831e2ff",
+      "name": "Prepare Unsubscribe Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2820,
+        940
+      ],
+      "id": "84d3b1b5-f0c4-44cf-b375-4652119c1f01",
+      "name": "Send Unsubscribe Message",
+      "webhookId": "ae9f9d00-10ac-4d89-8345-ee3f446ec970",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2700,
+        1120
+      ],
+      "id": "3ae7594a-1ff7-46d6-ac16-8c44419a8104",
+      "name": "Send Unsubscribed Reminder Message",
+      "webhookId": "75271181-5c77-4c28-a12b-8e1402d2ef11",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const firstName = $json.firstName || 'there';\nconst message = `🌤️ Weather Alert Bot Help\n\nHi ${firstName}! Here are all available commands:\n\n🚀 **Getting Started:**\n/start - Start the bot and register\n/location [city] - Set your location\n\n🌡️ **Weather Info:**\n/weather - Current weather conditions\n/forecast - 3-day weather forecast\n/alerts - Active weather warnings\n\n🔔 **Daily Updates:**\n/subscribe - Enable daily morning updates\n/unsubscribe - Disable daily updates\n\n❓ **Support:**\n/help - Show this help message\n\n📍 **Example Usage:**\n/location Errachidia\n/weather\n/forecast\n/subscribe\n\n💡 **Tips:**\n- Set your location first before using weather commands\n- Daily updates are sent at 7:00 AM\n- You'll get severe weather alerts automatically\n- Weather data updates every 30 minutes\n\nEnjoy your weather updates! 🌈`;\n\nreturn [{\n  json: {\n    chatId: $json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        1940
+      ],
+      "id": "e6475066-5e1d-4907-8058-3bbd94a95def",
+      "name": "Prepare Help Message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        1940
+      ],
+      "id": "d63c750b-6cf2-40d1-8a22-c94176e21d43",
+      "name": "Send Help Message",
+      "webhookId": "e6725ca0-e0aa-414c-8771-e9280562d0b5",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "user_id",
+              "lookupValue": "={{ $json.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1320,
+        1580
+      ],
+      "id": "9fc6e280-7b1b-48af-b313-134a03b925b1",
+      "name": "Get User Location (Alerts)",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1e6e7c53-89ca-47c7-b9f2-63ddca67b6d8",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        1580
+      ],
+      "id": "06812762-6c00-4928-96dd-6946bd8db1b1",
+      "name": "User Existence (Alerts)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = `🤖 You're not registered yet. Send /start to begin using the bot!`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.userId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        1740
+      ],
+      "id": "464c67aa-edbc-45a8-a319-43b5aacd3498",
+      "name": "User Not Found (Alerts)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2040,
+        1740
+      ],
+      "id": "04024d81-77a7-4510-9d65-a66f3b107f5c",
+      "name": "Send Message : User Not Found (Alerts)",
+      "webhookId": "55d20ae7-aa7c-4cb1-8a5f-9169ae029736",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b5b01b94-6535-4590-9641-81d77e3f70d7",
+              "leftValue": "={{ $json.location }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        1480
+      ],
+      "id": "acb609c7-7873-46e2-a6eb-1da7faacb40e",
+      "name": "Check Location Set (Alerts)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = `📍 Please set your location first to check weather alerts:\n/location [Your City Name]\n\nExample: /location Marrakech\n\nAfter setting your location, use /alerts to check for weather warnings.`;\n\nreturn [{\n  json: {\n    chatId: $('Parse Command').first().json.chatId,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        1560
+      ],
+      "id": "d04cac7a-3476-40b1-ae6d-26f80d5fb597",
+      "name": "Prepare Location Set Message (Alerts)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2360,
+        1560
+      ],
+      "id": "d9fc22ab-7ec2-4b66-b20f-8493419f3d4f",
+      "name": "Send Location Set Message (Alerts)",
+      "webhookId": "75271181-5c77-4c28-a12b-8e1402d2ef11",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "lat",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "appid",
+              "value": "[your weather API]"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        1340
+      ],
+      "id": "18c50bdf-e349-4e16-bfee-10c0c77fad8d",
+      "name": "Current Weather for Alerts"
+    },
+    {
+      "parameters": {
+        "jsCode": "const weather = $input.first().json;\nconst location = $('Check Location Set (Alerts)').first().json.location;\nconst temp = weather.main.temp;\nconst windSpeed = weather.wind.speed * 3.6; // m/s to km/h\nconst condition = weather.weather[0].main;\nconst humidity = weather.main.humidity;\nconst visibility = weather.visibility / 1000; // meters to km\n\nlet activeAlerts = [];\nlet advisories = [];\n\n// Critical alerts (immediate attention needed)\nif (temp < -10) {\n  activeAlerts.push('🥶 **EXTREME COLD WARNING**: Temperature below -10°C - Risk of frostbite');\n}\nif (temp > 40) {\n  activeAlerts.push('🔥 **EXTREME HEAT WARNING**: Temperature above 40°C - Heat stroke risk');\n}\nif (windSpeed > 70) {\n  activeAlerts.push('💨 **SEVERE WIND WARNING**: Wind speed above 70 km/h - Dangerous conditions');\n}\nif (condition === 'Thunderstorm') {\n  activeAlerts.push('⛈️ **THUNDERSTORM ALERT**: Seek shelter immediately');\n}\n\n// Weather advisories (caution recommended)\nif (temp < 0 && temp >= -10) {\n  advisories.push('❄️ Freezing conditions - Ice possible on roads');\n}\nif (temp > 35 && temp <= 40) {\n  advisories.push('🌡️ Very hot - Stay hydrated and avoid prolonged sun exposure');\n}\nif (windSpeed > 40 && windSpeed <= 70) {\n  advisories.push('💨 Strong winds - Secure loose objects');\n}\nif (humidity > 90) {\n  advisories.push('💧 Very high humidity - Uncomfortable conditions');\n}\nif (visibility < 1) {\n  advisories.push('🌫️ Poor visibility - Drive carefully');\n}\nif (condition === 'Snow') {\n  advisories.push('❄️ Snow conditions - Reduced visibility and slippery roads');\n}\nif (condition === 'Rain' && weather.rain && weather.rain['1h'] > 10) {\n  advisories.push('🌧️ Heavy rain - Possible flooding in low areas');\n}\n\nlet message = `⚠️ Weather Alerts for ${location}\\n\\n`;\n\nif (activeAlerts.length > 0) {\n  message += `🚨 **ACTIVE ALERTS:**\\n${activeAlerts.join('\\n')}\\n\\n`;\n}\n\nif (advisories.length > 0) {\n  message += `⚡ **ADVISORIES:**\\n${advisories.join('\\n')}\\n\\n`;\n}\n\nif (activeAlerts.length === 0 && advisories.length === 0) {\n  message += `✅ No active weather alerts for your area.\\n\\n`;\n  message += `Current conditions are normal:\\n`;\n  message += `🌡️ ${Math.round(temp)}°C\\n`;\n  message += `💨 Wind: ${Math.round(windSpeed)} km/h\\n`;\n  message += `📝 ${weather.weather[0].description}\\n\\n`;\n}\n\nmessage += `🕐 Last updated: ${new Date().toLocaleString()}\\n`;\nmessage += `💡 Use /weather for detailed current conditions`;\n\nreturn [{\n  json: {\n    chatId: $('Check Location Set (Alerts)').first().json.user_id,\n    message: message\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        1340
+      ],
+      "id": "5478e409-70ca-456b-b45e-256f56af85b7",
+      "name": "Check and Format Alerts"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2560,
+        1340
+      ],
+      "id": "6344d877-d2fe-4647-9492-7604d9e6fae1",
+      "name": "Send Alerts Message",
+      "webhookId": "54809023-645a-477f-b961-eb80b33f4434",
+      "credentials": {
+        "telegramApi": {
+          "id": "zb6b2WpibRSJlbGA",
+          "name": "Weather Alert Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b8b6657c-2a11-46b9-a29f-1d54c2fe65ec"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Start Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "61d82b29-2354-489a-a4d5-5b64957a50d2",
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/weather",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Current Weather Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7319a73b-2aea-4a57-a3f4-4971d64d8775",
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/forecast",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Forecast Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e53d2fa2-0cc4-4faa-a1c9-76192b75c583",
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/location",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Location Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "618b505c-f2de-420c-9f9b-07f5054a636a",
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/subscribe",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Subscribe Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3aed371d-2504-4b8d-9a16-e522ce3ef1b1",
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/unsubscribe",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Unsubscribe Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2669f5a2-9785-474e-a992-0ab9f2f8897c",
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/alerts",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Alerts Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "975ee0e5-9eb0-4035-8012-685d40889f75",
+                    "leftValue": "={{ $json.originalMessage }}",
+                    "rightValue": "/help",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Help Command"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -80,
+        -60
+      ],
+      "id": "0dd117e8-09eb-42e6-8d4b-157b2dc13b83",
+      "name": "Route Commands"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "44aa9104-cd76-43d6-8d2f-78acf363b668",
+              "leftValue": "={{ $json.location }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        840,
+        -840
+      ],
+      "id": "1f3ba760-4aaf-4a99-9489-94d79cd3da74",
+      "name": "Check Location (Weather)"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "lat",
+              "value": "={{ $json.lat }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $json.lon }}"
+            },
+            {
+              "name": "appid",
+              "value": "[your weather API]"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        -940
+      ],
+      "id": "b8889317-a496-46b6-aa9e-53ba9e1536fe",
+      "name": "Current Weather"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Users",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TI7vysDQJULYNJmFvJtpTBBnUQV50HKs75a3bI91ZVo/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "user_id",
+              "lookupValue": "={{ $json.userId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        840,
+        -440
+      ],
+      "id": "ebe1ef52-4c04-449d-a9e6-655729f41a2b",
+      "name": "Get User Data (forecast)",
+      "credentials": {
+        "googleApi": {
+          "id": "1GJEJnq56mCxd7da",
+          "name": "Weather Bot Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://api.openweathermap.org/geo/1.0/direct",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            },
+            {
+              "name": "appid",
+              "value": "[your weather API]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        20
+      ],
+      "id": "571a7a9e-ea48-46d9-b557-92e78993e0f7",
+      "name": "Geocoding"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Route Commands",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User Exists": {
+      "main": [
+        [
+          {
+            "node": "New User Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New User Check": {
+      "main": [
+        [
+          {
+            "node": "Add New User ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Exist Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add New User ": {
+      "main": [
+        [
+          {
+            "node": "Prepare Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Location Input": {
+      "main": [
+        [
+          {
+            "node": "Geocoding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Welcome Message": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Exist Message": {
+      "main": [
+        [
+          {
+            "node": "Send Exist Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Geocoding Response": {
+      "main": [
+        [
+          {
+            "node": "Update User Location",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User Location": {
+      "main": [
+        [
+          {
+            "node": "Prepare Confirm Location Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Confirm Location Set Message": {
+      "main": [
+        [
+          {
+            "node": "Send Confirm Location Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Location": {
+      "main": [
+        [
+          {
+            "node": "Check Location (Weather)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Weather Message": {
+      "main": [
+        [
+          {
+            "node": "Send Weather Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reset Location Message": {
+      "main": [
+        [
+          {
+            "node": "Send Reset Location Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Location Set": {
+      "main": [
+        [
+          {
+            "node": "5-Day Forecast",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Location Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Location Reminder Message": {
+      "main": [
+        [
+          {
+            "node": "Send Location Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5-Day Forecast": {
+      "main": [
+        [
+          {
+            "node": "Format Forecast Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Data (Subscribe)": {
+      "main": [
+        [
+          {
+            "node": "Check User Existence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Subscribed Reminder Message": {
+      "main": [
+        [
+          {
+            "node": "Send Subscribed Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Location Set Message": {
+      "main": [
+        [
+          {
+            "node": "Send Location Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Location": {
+      "main": [
+        [
+          {
+            "node": "Prepare Subscribe Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Change Subscribe Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Location Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Subscribe Message": {
+      "main": [
+        [
+          {
+            "node": "Send Subscribe Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Forecast Message": {
+      "main": [
+        [
+          {
+            "node": "Send Forecast Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User Existence": {
+      "main": [
+        [
+          {
+            "node": "Check Subscribe Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "User Not Found (Subscribe)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Data (Unsubscribe)": {
+      "main": [
+        [
+          {
+            "node": "Check User Existence (Unsubscribe)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check User Existence (Unsubscribe)": {
+      "main": [
+        [
+          {
+            "node": "Check Unsubscribe Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "User Not Found (Unsubscribe)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Not Found (Unsubscribe)": {
+      "main": [
+        [
+          {
+            "node": "Send Message : User Not Found (Unsubscribe)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Not Found (Subscribe)": {
+      "main": [
+        [
+          {
+            "node": "Send Message : User Not Found (Subscribe)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Unsubscribe Status": {
+      "main": [
+        [
+          {
+            "node": "Prepare Unsubscribe Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Change Unsubscribe Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Unsubscribed Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Subscribe Status": {
+      "main": [
+        [
+          {
+            "node": "Check Location",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Subscribed Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Unsubscribed Reminder Message": {
+      "main": [
+        [
+          {
+            "node": "Send Unsubscribed Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Unsubscribe Message": {
+      "main": [
+        [
+          {
+            "node": "Send Unsubscribe Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Help Message": {
+      "main": [
+        [
+          {
+            "node": "Send Help Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Location (Alerts)": {
+      "main": [
+        [
+          {
+            "node": "User Existence (Alerts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Existence (Alerts)": {
+      "main": [
+        [
+          {
+            "node": "Check Location Set (Alerts)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "User Not Found (Alerts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Not Found (Alerts)": {
+      "main": [
+        [
+          {
+            "node": "Send Message : User Not Found (Alerts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Location Set (Alerts)": {
+      "main": [
+        [
+          {
+            "node": "Current Weather for Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Location Set Message (Alerts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Location Set Message (Alerts)": {
+      "main": [
+        [
+          {
+            "node": "Send Location Set Message (Alerts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Current Weather for Alerts": {
+      "main": [
+        [
+          {
+            "node": "Check and Format Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check and Format Alerts": {
+      "main": [
+        [
+          {
+            "node": "Send Alerts Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Commands": {
+      "main": [
+        [
+          {
+            "node": "Check User Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Location",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Data (forecast)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Location Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Data (Subscribe)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Data (Unsubscribe)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get User Location (Alerts)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Help Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Location (Weather)": {
+      "main": [
+        [
+          {
+            "node": "Current Weather",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Reset Location Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Current Weather": {
+      "main": [
+        [
+          {
+            "node": "Format Weather Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Data (forecast)": {
+      "main": [
+        [
+          {
+            "node": "Check Location Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geocoding": {
+      "main": [
+        [
+          {
+            "node": "Process Geocoding Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f90e383a-5f5e-4bb8-b7ea-72ef0c357d22",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ff50a2bb8e05b64a5f5c79a3c4563fcf8f36ac2d8e7c05167cadd6a06e32a3a0"
+  },
+  "id": "XXzDpUSLnvEOv7cI",
+  "tags": []
+}
